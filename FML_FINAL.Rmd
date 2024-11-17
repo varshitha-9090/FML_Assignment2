@@ -1,0 +1,117 @@
+---
+title: "phani_fml"
+author: "phani varshitha"
+date: "2023-12-07"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(caret)
+library(factoextra)
+```
+
+#Importing the dataset
+```{r}
+df=read.csv("C:/Users/varshitha/Downloads/fuel_receipts1.csv")
+df.2=df
+```
+i#selecting only the variables needed i.e sulfur content, ash cont
+```{r}
+df=df[,c(10,11,12)]
+```
+
+#Normalizing data
+```{r}
+norm=preProcess(df,method =c("center","scale"))
+df.norm=predict(norm,df)
+```
+
+- K-means: 
+
+Deciding on value of K :
+#using silhouette method to decide on number of clusters
+```{r}
+fviz_nbclust(df.norm,kmeans,method = "silhouette")
+```
+
+Let's take k=4.
+
+```{r}
+d=dist(df.norm,method = "euclidean")
+hc=hclust(d,method='complete')
+plot(hc)
+rect.hclust(hc,k=4,border = 2:4)
+```
+
+
+let's take k=2: 
+```{r}
+d=dist(df.norm,method = "euclidean")
+hc=hclust(d,method='complete')
+plot(hc)
+rect.hclust(hc,k=2,border = 2:3)
+```
+
+```{r}
+cluster=cutree(hc,2)
+df.norm$cluster=cluster
+```
+
+Cluster-1:(Affordable environmentally harmful fuels)
+
+
+```{r}
+cluster.1=df.norm %>%
+filter(cluster==1)
+summary(cluster.1[-4])
+```
+Cluster-2:(Environment friendly pricy fuels)
+
+```{r}
+cluster.2=df.norm %>%
+  filter(cluster==2)
+summary(cluster.2[-4])
+```
+Plotting fuel type code against cluster
+
+```{r}
+df.2=predict(norm,df.2)
+df.2=df.2%>%
+mutate(cluster=cluster)
+ggplot(df.2,mapping = aes(cluster,fill=fuel_type_code_pudl))+
+geom_bar() +
+labs(x='Clusters',y='Frequency')
+```
+Plotting fuel group code against clusters
+```{r}
+df.2=predict(norm,df.2)
+df.2=df.2%>%
+mutate(cluster=cluster)
+ggplot(df.2,mapping = aes(cluster,fill=fuel_group_code))+
+geom_bar() +
+labs(x='Clusters',y='Frequency')
+```
+#summary
+
+1. We used complete linking. This connects the clusters' farthest points to calculate distance between them. We discovered that the cluster-formation was sensitive to the value of k due to outliers.
+As a result, I used complete linkage, which results in fewer outliers.
+
+2.I first used the silhouettee method to determine k=4. However, the clusters formed are illogical, so we used the cutree method to divide the diagram into two clusters that make sense and are easy to interpret. As a result, the number of clusters equals two.
+
+3.• Cluster 1 (Affordable environmentally harmful fuels): The mean fuel cost in this cluster is -0.2. This means that the prices of the fuels are slightly lower than average. Sulfur and ash content, on the other hand, have higher positive mean values than zero. As a result, these fuels are extremely polluting.
+
+• Cluster-2 (Expensive environmentally friendly fuels): This cluster has a positive mean fuel price. This
+
+means that the fuels are expensive!.However, the mean values of sulfur and ash content are extremely high.
+
+negative. This means that the fuels are safe for the environment.
+
+4.Coal and gas are in the first cluster, which means they are cheap but harmful to the environment. Oil, on the other hand, belongs to the second cluster. This means that while oil is more expensive, it is less harmful to the environment.
+
+
